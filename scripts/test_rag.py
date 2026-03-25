@@ -1,12 +1,15 @@
 import os
 import sys
+import time
 from dotenv import load_dotenv
 
 
 # ===============================
 # 🔧 Setup Project Root Path
 # ===============================
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+PROJECT_ROOT = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..")
+)
 sys.path.insert(0, PROJECT_ROOT)
 
 # ===============================
@@ -20,17 +23,18 @@ load_dotenv()
 # ===============================
 from rag.rag_service import RAGService
 from vector_store.faiss_loader import FAISSLoader
-from llm.llm_client import LLMClient
 from ingestion.embedder import Embedder
 
+from llm.llm_factory import LLMFactory
+from llm.prompt_builder import PromptBuilder
 
-# ===============================
-# ⚙️ Config (Centralised)
-# ===============================
-CLASS_ID = 10
-SUBJECT = "science"
-TOP_K = 5
-DEBUG_MODE = True
+from config.settings import (
+    CLASS_ID,
+    SUBJECT,
+    TOP_K,
+    DEBUG_MODE,
+    USE_MOCK_LLM
+)
 
 
 # ===============================
@@ -38,7 +42,10 @@ DEBUG_MODE = True
 # ===============================
 def build_tutor():
 
-    print("\n🚀 Initialising NCERT RAG Tutor...\n")
+    print("\n🚀 Initialising NCERT RAG Tutor")
+    print(f"📘 Class: {CLASS_ID} | Subject: {SUBJECT}")
+    print(f"⚙️ LLM Mode: {'MOCK' if USE_MOCK_LLM else 'REAL'}")
+    print("")
 
     embedder = Embedder()
 
@@ -47,12 +54,15 @@ def build_tutor():
         subject=SUBJECT
     )
 
-    llm_client = LLMClient()
+    llm_client = LLMFactory.create()
+
+    prompt_builder = PromptBuilder()
 
     rag = RAGService(
         vector_store=vector_store,
         embedder=embedder,
         llm_client=llm_client,
+        prompt_builder=prompt_builder,
         top_k=TOP_K
     )
 
@@ -80,24 +90,32 @@ def chat_loop(rag):
                 print("\n👋 Exiting Tutor...\n")
                 break
 
+            start = time.time()
+
             answer, chunks = rag.ask_with_debug(question)
 
+            latency = time.time() - start
+
             if DEBUG_MODE:
-                print("\n📚 Retrieved Chunks:\n")
+                print("\n📚 Retrieved Chunks:")
                 for c in chunks:
-                    print(f"— {c.get('topic')} | {c.get('type')}")
+                    topic = c.get("topic")
+                    ctype = c.get("type")
+                    print(f"— {topic} | {ctype}")
 
             print("\n🤖 Tutor Answer:\n")
             print(answer)
 
+            print(f"\n⏱ Latency: {latency:.2f} sec")
+
             print("\n" + "=" * 70 + "\n")
 
         except KeyboardInterrupt:
-            print("\n\n👋 Interrupted. Goodbye!\n")
+            print("\n👋 Interrupted. Goodbye!\n")
             break
 
         except Exception as e:
-            print("\n❌ Error:", str(e))
+            print("\n❌ Runtime Error:", str(e))
             print("Continuing...\n")
 
 
