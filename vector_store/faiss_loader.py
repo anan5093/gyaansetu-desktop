@@ -3,9 +3,7 @@ import json
 import os
 import numpy as np
 
-
 class FAISSLoader:
-
     def __init__(self, class_id, subject, base_dir="data"):
 
         self.index_path = os.path.join(
@@ -37,9 +35,14 @@ class FAISSLoader:
 
         results = []
 
-        for idx in ids[0]:
+        for score, idx in zip(scores[0], ids[0]):
+
             if idx == -1:
                 continue
-            results.append(self.meta[idx])
+
+            chunk = self.meta[idx].copy()
+            chunk["score"] = float(score)
+
+            results.append(chunk)
 
         return results

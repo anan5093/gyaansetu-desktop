@@ -1,27 +1,12 @@
 class PromptBuilder:
-
-    def build(self, chunks, question):
-
-        context_blocks = []
-
-        for c in chunks:
-            topic = c.get("topic", "Unknown Topic")
-            text = c.get("text", "")
-
-            block = f"""
-[Topic: {topic}]
-{text}
-"""
-            context_blocks.append(block.strip())
-
-        context = "\n\n".join(context_blocks)
+    def build(self, context, question):
 
         return f"""
 You are an NCERT academic tutor.
 
 Answer ONLY using the NCERT context below.
 
-If answer is not present → say:
+If the answer is not present in the context, say:
 "Answer not found in NCERT content."
 
 NCERT Context:

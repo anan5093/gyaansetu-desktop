@@ -1,45 +1,75 @@
 class RAGService:
-
     def __init__(
         self,
         vector_store,
         embedder,
         llm_client,
         prompt_builder,
-        top_k=3
+        top_k=3,
+        score_threshold=0.35
     ):
         self.vector_store = vector_store
         self.embedder = embedder
         self.llm_client = llm_client
         self.prompt_builder = prompt_builder
         self.top_k = top_k
+        self.score_threshold = score_threshold
 
     # ===============================
     # Retrieval Layer
     # ===============================
     def retrieve(self, question):
-
         qvec = self.embedder.embed([question])[0]
 
-        chunks = self.vector_store.search(
+        results = self.vector_store.search(
             qvec,
             k=self.top_k
-        )
+        ) or []
 
-        return chunks
+        # ⭐ Threshold Filtering
+        filtered = [
+            c for c in results
+            if isinstance(c, dict) and c.get("score", 0) >= self.score_threshold
+        ]
+
+        return filtered
+
+    # ===============================
+    # Context Builder
+    # ===============================
+    def build_context(self, chunks):
+        unique_texts = []
+        seen = set()
+
+        for c in chunks:
+            text = ""
+            if isinstance(c, dict):
+                text = c.get("text", "")
+            elif isinstance(c, str):
+                text = c
+
+            if text and text not in seen:
+                unique_texts.append(text)
+                seen.add(text)
+
+        return "\n\n".join(unique_texts)
 
     # ===============================
     # Answer Generation
     # ===============================
     def ask(self, question):
-
         chunks = self.retrieve(question)
 
         if not chunks:
             return "Answer not found in NCERT content."
 
+        context = self.build_context(chunks)
+
+        if not context.strip():
+            return "Answer not found in NCERT content."
+
         prompt = self.prompt_builder.build(
-            chunks,
+            context,
             question
         )
 
@@ -51,14 +81,18 @@ class RAGService:
     # Debug Mode
     # ===============================
     def ask_with_debug(self, question):
-
         chunks = self.retrieve(question)
 
         if not chunks:
             return "Answer not found in NCERT content.", []
 
+        context = self.build_context(chunks)
+
+        if not context.strip():
+            return "Answer not found in NCERT content.", chunks
+
         prompt = self.prompt_builder.build(
-            chunks,
+            context,
             question
         )
 
