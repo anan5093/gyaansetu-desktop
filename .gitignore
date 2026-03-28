@@ -79,3 +79,10 @@ Thumbs.db
 # ===============================
 *.tmp
 *.bak
+
+
+
+# Block binaries
+*.index
+*.jpg
+*.png
