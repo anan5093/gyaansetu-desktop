@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # GyaanSetu — AI-Powered NCERT Tutor
 
 > **GyaanSetu** (ज्ञानसेतु) means *Bridge of Knowledge* — an intelligent RAG-based tutor that answers NCERT curriculum questions using AI.
@@ -339,3 +340,15 @@ python scripts/test_vector_retrieval.py
 ---
 
 *GyaanSetu is an open-source project. See [LICENSE](LICENSE) for details.*
+=======
+---
+title: Gyaansetu Backend
+emoji: 👁
+colorFrom: green
+colorTo: yellow
+sdk: docker
+pinned: false
+---
+
+Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+>>>>>>> 139bcca1f2233be672f1caf5e05de430ac5ec512
