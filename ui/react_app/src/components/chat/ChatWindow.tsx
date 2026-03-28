@@ -1,17 +1,28 @@
 import { useState, useEffect, useRef } from "react";
 import MessageBubble from "./MessageBubble";
 
-export default function ChatWindow({ selectedClass }) {
-  const [messages, setMessages] = useState([
+// ✅ Type for props
+type ChatWindowProps = {
+  selectedClass: number;
+};
+
+// ✅ Type for messages
+type Message = {
+  sender: "user" | "ai";
+  text: string;
+};
+
+export default function ChatWindow({ selectedClass }: ChatWindowProps) {
+  const [messages, setMessages] = useState<Message[]>([
     {
       sender: "ai",
       text: `👋 Great! You selected Class ${selectedClass}. Ask me anything.`,
     },
   ]);
 
-  const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const [isThinking, setIsThinking] = useState(false);
+  const [input, setInput] = useState<string>("");
+  const [isTyping, setIsTyping] = useState<boolean>(false);
+  const [isThinking, setIsThinking] = useState<boolean>(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -47,7 +58,7 @@ export default function ChatWindow({ selectedClass }) {
   const sendMessage = async () => {
     if (!input.trim() || isTyping) return;
 
-    const userMsg = { sender: "user", text: input };
+    const userMsg: Message = { sender: "user", text: input };
 
     setMessages((prev) => [
       ...prev,
@@ -60,17 +71,20 @@ export default function ChatWindow({ selectedClass }) {
     setIsThinking(true);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          question: userQuestion,
-          class_id: selectedClass,
-          subject: "science",
-        }),
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/chat`, // ✅ dynamic API
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            question: userQuestion,
+            class_id: selectedClass,
+            subject: "science",
+          }),
+        }
+      );
 
       const data = await res.json();
 
@@ -124,10 +138,10 @@ export default function ChatWindow({ selectedClass }) {
 
       {/* INPUT */}
       <div className="pb-6">
-        <div className="flex items-center gap-3 
-                        bg-white/10 backdrop-blur-xl 
-                        rounded-full px-5 py-3 
-                        shadow-[0_0_40px_rgba(255,115,0,0.15)] 
+        <div className="flex items-center gap-3
+                        bg-white/10 backdrop-blur-xl
+                        rounded-full px-5 py-3
+                        shadow-[0_0_40px_rgba(255,115,0,0.15)]
                         border border-white/10">
 
           <input
@@ -142,8 +156,8 @@ export default function ChatWindow({ selectedClass }) {
             onClick={sendMessage}
             disabled={isTyping}
             className={`px-5 py-2 rounded-full shadow-lg transition-all duration-300
-              ${isTyping 
-                ? "bg-gray-500 cursor-not-allowed" 
+              ${isTyping
+                ? "bg-gray-500 cursor-not-allowed"
                 : "bg-orange-500 hover:bg-orange-600 hover:scale-110"}
             `}
           >

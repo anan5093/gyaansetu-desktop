@@ -1,4 +1,9 @@
-export default function MessageBubble({ sender, text }) {
+type MessageBubbleProps = {
+  sender: "user" | "ai";
+  text: string;
+};
+
+export default function MessageBubble({ sender, text }: MessageBubbleProps) {
   return (
     <div
       className={`max-w-[65%] px-5 py-3 rounded-2xl shadow-lg animate-slideUp ${
