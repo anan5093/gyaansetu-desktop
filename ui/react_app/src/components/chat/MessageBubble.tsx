@@ -4,12 +4,17 @@ type MessageBubbleProps = {
 };
 
 export default function MessageBubble({ sender, text }: MessageBubbleProps) {
+  const isUser = sender === "user";
+
   return (
     <div
-      className={`max-w-[65%] px-5 py-3 rounded-2xl shadow-lg animate-slideUp ${
-        sender === "user"
-          ? "bg-orange-500 ml-auto"
-          : "bg-white/10 backdrop-blur-xl border border-white/10"
+      role="status"
+      aria-label={isUser ? "User message" : "AI response"}
+      className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm 
+                  animate-fadeInUp will-change-transform ${
+        isUser
+          ? "bg-orange-500 text-white ml-auto"
+          : "bg-white/10 text-white border border-white/10"
       }`}
     >
       {text}

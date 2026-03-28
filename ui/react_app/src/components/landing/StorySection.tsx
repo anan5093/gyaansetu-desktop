@@ -1,29 +1,30 @@
 // src/components/landing/StorySection.tsx
 
-import { motion } from "framer-motion";
-
 export default function StorySection() {
   return (
-    <section className="py-32 text-center max-w-4xl mx-auto">
+    <section
+      id="story"
+      className="py-24 px-6 text-center max-w-4xl mx-auto animate-fadeInUp"
+    >
 
-      <motion.h2
-        initial={{ opacity: 0, y: 40 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1 }}
-        className="text-4xl font-bold"
-      >
+      {/* Heading */}
+      <h2 className="text-3xl md:text-4xl font-bold animate-fadeIn">
         From Freedom Fighters to Future Learners
-      </motion.h2>
+      </h2>
 
-      <motion.p
-        initial={{ opacity: 0, y: 40 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="mt-6 text-gray-400"
+      {/* SEO Optimized Paragraph */}
+      <p
+        className="mt-6 text-gray-400 animate-fadeInUp"
+        style={{ animationDelay: "0.2s", animationFillMode: "forwards" }}
       >
-        The same spirit that once fought for independence
-        now drives a new revolution — education powered by AI.
-      </motion.p>
+        The same spirit that once drove <strong>India’s freedom fighters</strong>
+        now fuels a new revolution in <strong>education and learning</strong>.
+        With the rise of <strong>AI-powered education platforms</strong> and
+        <strong> NCERT-based learning systems</strong>, students can access
+        high-quality knowledge anytime, anywhere. This shift represents the
+        future of <strong>digital education in India</strong>, where intelligent
+        tutoring systems empower learners to grow faster and smarter.
+      </p>
 
     </section>
   );

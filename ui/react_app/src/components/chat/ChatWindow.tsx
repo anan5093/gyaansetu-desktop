@@ -1,12 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import MessageBubble from "./MessageBubble";
 
-// ✅ Type for props
 type ChatWindowProps = {
   selectedClass: number;
 };
 
-// ✅ Type for messages
 type Message = {
   sender: "user" | "ai";
   text: string;
@@ -20,9 +18,9 @@ export default function ChatWindow({ selectedClass }: ChatWindowProps) {
     },
   ]);
 
-  const [input, setInput] = useState<string>("");
-  const [isTyping, setIsTyping] = useState<boolean>(false);
-  const [isThinking, setIsThinking] = useState<boolean>(false);
+  const [input, setInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -31,28 +29,32 @@ export default function ChatWindow({ selectedClass }: ChatWindowProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping, isThinking]);
 
-  // ✨ Typing animation
+  // ✅ Optimized typing effect (less re-renders)
   const typeEffect = async (fullText: string) => {
     setIsTyping(true);
 
-    let current = "";
+    let index = 0;
 
-    for (let i = 0; i < fullText.length; i++) {
-      current += fullText[i];
+    return new Promise<void>((resolve) => {
+      const interval = setInterval(() => {
+        index++;
 
-      setMessages((prev) => {
-        const updated = [...prev];
-        updated[updated.length - 1] = {
-          sender: "ai",
-          text: current,
-        };
-        return updated;
-      });
+        setMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = {
+            sender: "ai",
+            text: fullText.slice(0, index),
+          };
+          return updated;
+        });
 
-      await new Promise((res) => setTimeout(res, 12));
-    }
-
-    setIsTyping(false);
+        if (index >= fullText.length) {
+          clearInterval(interval);
+          setIsTyping(false);
+          resolve();
+        }
+      }, 16); // smoother + less CPU
+    });
   };
 
   const sendMessage = async () => {
@@ -72,7 +74,7 @@ export default function ChatWindow({ selectedClass }: ChatWindowProps) {
 
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/chat`, // ✅ dynamic API
+        `${import.meta.env.VITE_API_URL}/chat`,
         {
           method: "POST",
           headers: {
@@ -86,8 +88,9 @@ export default function ChatWindow({ selectedClass }: ChatWindowProps) {
         }
       );
 
-      const data = await res.json();
+      if (!res.ok) throw new Error("API failed");
 
+      const data = await res.json();
       setIsThinking(false);
 
       await typeEffect(data.answer);
@@ -101,7 +104,10 @@ export default function ChatWindow({ selectedClass }: ChatWindowProps) {
   };
 
   return (
-    <div className="w-full h-full flex flex-col justify-between px-4 md:px-20">
+    <div
+      aria-label="AI chat window for NCERT learning assistant"
+      className="w-full h-full flex flex-col justify-between px-4 md:px-20"
+    >
 
       {/* CHAT */}
       <div className="flex-1 overflow-y-auto pt-6 space-y-4">
@@ -109,13 +115,13 @@ export default function ChatWindow({ selectedClass }: ChatWindowProps) {
         {messages.map((msg, i) => (
           <div
             key={i}
-            className="animate-fadeInUp transition-all duration-300"
+            className="animate-fadeInUp"
           >
             <MessageBubble {...msg} />
           </div>
         ))}
 
-        {/* 🧠 Thinking indicator */}
+        {/* Thinking indicator */}
         {isThinking && (
           <div className="bg-white/10 px-4 py-2 rounded-xl w-fit">
             <span className="flex gap-1">
@@ -126,7 +132,7 @@ export default function ChatWindow({ selectedClass }: ChatWindowProps) {
           </div>
         )}
 
-        {/* ✨ Typing cursor */}
+        {/* Typing cursor */}
         {isTyping && (
           <div className="text-white text-sm opacity-70 px-2">
             <span className="animate-pulse">▍</span>
@@ -141,13 +147,13 @@ export default function ChatWindow({ selectedClass }: ChatWindowProps) {
         <div className="flex items-center gap-3
                         bg-white/10 backdrop-blur-xl
                         rounded-full px-5 py-3
-                        shadow-[0_0_40px_rgba(255,115,0,0.15)]
                         border border-white/10">
 
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask anything from NCERT..."
+            placeholder="Ask NCERT questions with AI tutor..."
+            aria-label="Type your question"
             className="flex-1 bg-transparent outline-none text-white placeholder-gray-400"
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
           />
@@ -155,10 +161,11 @@ export default function ChatWindow({ selectedClass }: ChatWindowProps) {
           <button
             onClick={sendMessage}
             disabled={isTyping}
-            className={`px-5 py-2 rounded-full shadow-lg transition-all duration-300
+            aria-label="Send message"
+            className={`px-5 py-2 rounded-full transition-transform duration-300
               ${isTyping
                 ? "bg-gray-500 cursor-not-allowed"
-                : "bg-orange-500 hover:bg-orange-600 hover:scale-110"}
+                : "bg-orange-500 hover:bg-orange-600 hover:scale-105"}
             `}
           >
             Send

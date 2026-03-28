@@ -1,45 +1,57 @@
+import { lazy, Suspense } from "react";
 import Navbar from "../components/landing/Navbar";
-import HeroSection from "../components/landing/HeroSection";
-import FeaturesSection from "../components/landing/FeaturesSection";
-import VisionSection from "../components/landing/VisionSection";
-import AboutSection from "../components/landing/AboutSection";
 import Footer from "../components/landing/FooterSection";
 
-import StorySection from "../components/landing/StorySection";
-import FreedomBackground from "../components/landing/FreedomBackground";
-import AIGoodSection from "../components/landing/AIGoodSection";
+// 🔥 Lazy load all heavy sections
+const HeroSection = lazy(() => import("../components/landing/HeroSection"));
+const StorySection = lazy(() => import("../components/landing/StorySection"));
+const FreedomBackground = lazy(() => import("../components/landing/FreedomBackground"));
+const FeaturesSection = lazy(() => import("../components/landing/FeaturesSection"));
+const AIGoodSection = lazy(() => import("../components/landing/AIGoodSection"));
+const VisionSection = lazy(() => import("../components/landing/VisionSection"));
+const AboutSection = lazy(() => import("../components/landing/AboutSection"));
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <main
+      aria-label="AI-powered NCERT learning platform homepage"
+      className="relative min-h-screen overflow-hidden"
+    >
 
       {/* 🌐 Navbar */}
       <Navbar />
 
-      {/* 🧠 Hero */}
-      <HeroSection />
+      {/* 🔥 Hero (load first for LCP) */}
+      <Suspense fallback={<div className="h-screen flex items-center justify-center text-white">Loading...</div>}>
+        <HeroSection />
+      </Suspense>
 
-      {/* 📖 Story */}
-      <StorySection />
+      {/* Below-the-fold sections (lazy) */}
+      <Suspense fallback={<div className="text-center text-gray-400 py-10">Loading sections...</div>}>
 
-      {/* 🇮🇳 Freedom Section (NOW CORRECT PLACE) */}
-      <FreedomBackground />
+        {/* 📖 Story */}
+        <StorySection />
 
-      {/* ⚡ Features */}
-      <FeaturesSection />
+        {/* 🇮🇳 Freedom */}
+        <FreedomBackground />
 
-      {/* 🤖 AI for Good */}
-      <AIGoodSection />
+        {/* ⚡ Features */}
+        <FeaturesSection />
 
-      {/* 🎯 Vision */}
-      <VisionSection />
+        {/* 🤖 AI for Good */}
+        <AIGoodSection />
 
-      {/* 📘 About */}
-      <AboutSection />
+        {/* 🎯 Vision */}
+        <VisionSection />
+
+        {/* 📘 About */}
+        <AboutSection />
+
+      </Suspense>
 
       {/* 🔻 Footer */}
       <Footer />
 
-    </div>
+    </main>
   );
 }

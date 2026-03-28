@@ -16,13 +16,17 @@ __pycache__/
 .env
 .env.*
 
-# ===============================
-# 📦 Data / RAG Artifacts
-# ===============================
-data/
-vector_store/
-*.index
-*.faiss
+
+# Ignore everything in data
+data/*
+
+# Allow ONLY vector store
+!data/vector_store/
+!data/vector_store/**
+
+# Ignore raw + temp
+data/raw_dataset/
+data/cleaned_dataset/
 
 # ===============================
 # 🧠 Model / Embeddings Cache

@@ -15,8 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy full project
 COPY . .
 
-# Expose port
-EXPOSE 10000
+# HuggingFace expects 7860
+EXPOSE 7860
 
-# Start server
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "10000"]
+# Start FastAPI
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "7860"]

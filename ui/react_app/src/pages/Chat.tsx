@@ -7,18 +7,20 @@ import Navbar from "../components/landing/Navbar";
 export default function Chat() {
   const [selectedClass, setSelectedClass] = useState<number | null>(null);
   const [showSelector, setShowSelector] = useState(false);
-  const [fadeIn, setFadeIn] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSelector(true);
-      setFadeIn(true);
-    }, 500);
+    }, 400);
+
     return () => clearTimeout(timer);
   }, []);
 
   return (
-    <div className="relative min-h-screen text-white overflow-hidden flex flex-col">
+    <main
+      aria-label="AI chat interface for NCERT learning"
+      className="relative min-h-screen text-white overflow-hidden flex flex-col"
+    >
 
       {/* Background */}
       <ChatBackground />
@@ -33,11 +35,7 @@ export default function Chat() {
 
         {/* Class Selector */}
         {!selectedClass && showSelector && (
-          <div
-            className={`transition-all duration-700 ease-out ${
-              fadeIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-            }`}
-          >
+          <div className="animate-fadeInUp">
             <ClassSelector onSelect={setSelectedClass} />
           </div>
         )}
@@ -50,6 +48,6 @@ export default function Chat() {
         )}
 
       </div>
-    </div>
+    </main>
   );
 }

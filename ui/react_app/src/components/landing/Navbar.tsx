@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -17,7 +17,6 @@ export default function Navbar() {
 
     sections.forEach((id) => {
       const el = document.getElementById(id);
-
       if (!el) return;
 
       const observer = new IntersectionObserver(
@@ -36,40 +35,44 @@ export default function Navbar() {
     return () => observers.forEach((obs) => obs.disconnect());
   }, [location.pathname]);
 
-  // 🔁 Navigation + Scroll
-  const goToSection = (id: string) => {
+  // 🔁 Navigation + Scroll (optimized)
+  const goToSection = useCallback((id: string) => {
     if (location.pathname === "/") {
       document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
     } else {
       navigate("/");
-
       setTimeout(() => {
         document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-      }, 400);
+      }, 300);
     }
-  };
+  }, [location.pathname, navigate]);
 
   return (
-    <div className="fixed top-0 w-full z-50 backdrop-blur-xl bg-black/30 border-b border-white/10">
-      <div className="flex justify-between items-center px-10 py-4 text-white">
+    <nav
+      aria-label="Main Navigation"
+      className="fixed top-0 w-full z-50 backdrop-blur-xl bg-black/30 border-b border-white/10"
+    >
+      <div className="flex justify-between items-center px-6 md:px-10 py-4 text-white">
 
         {/* Logo */}
-        <div
-          className="font-semibold text-lg cursor-pointer"
+        <button
           onClick={() => navigate("/")}
+          className="font-semibold text-lg cursor-pointer hover:scale-105 transition-transform"
+          aria-label="Go to homepage"
         >
           ✨ <span className="text-orange-500">NCERT</span> Companion
-        </div>
+        </button>
 
         {/* Nav */}
-        <div className="flex gap-8 items-center relative">
+        <div className="flex gap-6 md:gap-8 items-center relative">
 
           {/* Landing Sections */}
           {sections.map((sec) => (
             <button
               key={sec}
               onClick={() => goToSection(sec)}
-              className={`relative pb-1 capitalize transition ${
+              aria-label={`Go to ${sec} section`}
+              className={`relative pb-1 capitalize transition-colors duration-300 ${
                 active === sec && location.pathname === "/"
                   ? "text-orange-400"
                   : "hover:text-orange-300"
@@ -88,10 +91,11 @@ export default function Navbar() {
             </button>
           ))}
 
-          {/* 🔥 NEW: Evaluation Page */}
+          {/* Evaluation Page */}
           <button
             onClick={() => navigate("/evaluation")}
-            className={`relative pb-1 transition ${
+            aria-label="Go to evaluation page"
+            className={`relative pb-1 transition-colors duration-300 ${
               location.pathname === "/evaluation"
                 ? "text-orange-400"
                 : "hover:text-orange-300"
@@ -109,7 +113,9 @@ export default function Navbar() {
           {/* Chat CTA */}
           <button
             onClick={() => navigate("/chat")}
-            className={`ml-4 px-5 py-2 rounded-full transition-all duration-300 hover:scale-105 shadow-lg ${
+            aria-label="Start chat"
+            className={`ml-2 md:ml-4 px-4 md:px-5 py-2 rounded-full shadow-lg 
+              transition-all duration-300 hover:scale-105 active:scale-95 ${
               location.pathname === "/chat"
                 ? "bg-orange-600"
                 : "bg-orange-500 hover:bg-orange-600"
@@ -120,6 +126,6 @@ export default function Navbar() {
 
         </div>
       </div>
-    </div>
+    </nav>
   );
 }

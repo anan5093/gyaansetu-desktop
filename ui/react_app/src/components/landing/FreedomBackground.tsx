@@ -1,14 +1,10 @@
-// src/components/landing/FreedomBackground.tsx
-
-import { motion } from "framer-motion";
-
 export default function FreedomBackground() {
   const images = [
-    "/bhagat.jpg",
-    "/revolution.jpg",
-    "/savarkar.jpg",
-    "/bharatmata.jpg",
-    "/quote.jpg",
+    { src: "/bhagat.jpg", alt: "Bhagat Singh portrait" },
+    { src: "/revolution.jpg", alt: "Indian freedom revolution scene" },
+    { src: "/savarkar.jpg", alt: "Vinayak Savarkar portrait" },
+    { src: "/bharatmata.jpg", alt: "Bharat Mata illustration" },
+    { src: "/quote.jpg", alt: "Inspirational freedom fighter quote" },
   ];
 
   return (
@@ -17,22 +13,16 @@ export default function FreedomBackground() {
       {/* 🖼 Horizontal Image Row */}
       <div className="flex gap-6 justify-center items-center flex-wrap mt-10">
 
-        {images.map((src, i) => (
-          <motion.img
+        {images.map((img, i) => (
+          <img
             key={i}
-            src={src}
-            className="w-40 h-52 object-cover rounded-xl shadow-lg opacity-80"
-
-            // Start hidden
-            initial={{ opacity: 0, y: 40 }}
-
-            // Appear one by one
-            animate={{ opacity: 0.9, y: 0 }}
-
-            transition={{
-              delay: i * 0.6,   // ⬅️ slower sequence
-              duration: 1.2,
-              ease: "easeOut",
+            src={img.src}
+            alt={img.alt}
+            loading="lazy"
+            className="w-40 h-52 object-cover rounded-xl shadow-lg opacity-0 animate-fadeInUp"
+            style={{
+              animationDelay: `${i * 0.3}s`,
+              animationFillMode: "forwards",
             }}
           />
         ))}
