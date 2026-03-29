@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # GyaanSetu — AI-Powered NCERT Tutor
 
 > **GyaanSetu** (ज्ञानसेतु) means *Bridge of Knowledge* — an intelligent RAG-based tutor that answers NCERT curriculum questions using AI.
@@ -196,13 +195,15 @@ Build and run the full backend in a single container:
 
 ```bash
 docker build -t gyaansetu .
-docker run -p 10000:10000 \
+docker run -p 8000:8000 \
   -e USE_MOCK_LLM=false \
   -e OPENROUTER_API_KEY=your_key_here \
+  -e FAISS_URL=https://your-host/science_faiss.index \
+  -e META_URL=https://your-host/science_meta.json \
   gyaansetu
 ```
 
-The API is then available at [http://localhost:10000](http://localhost:10000).
+The API is then available at [http://localhost:8000](http://localhost:8000).
 
 ---
 
@@ -224,6 +225,8 @@ All settings are controlled via environment variables (or a `.env` file loaded b
 | `API_PORT` | `8000` | Port for the FastAPI server |
 | `FRONTEND_URL` | `http://localhost:5173` | Allowed CORS origin |
 | `ENABLE_LOGS` | `true` | Print verbose startup and request logs |
+| `FAISS_URL` | — | URL to download the pre-built FAISS index (used in Docker/cloud deployments) |
+| `META_URL` | — | URL to download the FAISS metadata JSON (used in Docker/cloud deployments) |
 
 ---
 
@@ -340,15 +343,3 @@ python scripts/test_vector_retrieval.py
 ---
 
 *GyaanSetu is an open-source project. See [LICENSE](LICENSE) for details.*
-=======
----
-title: Gyaansetu Backend
-emoji: 👁
-colorFrom: green
-colorTo: yellow
-sdk: docker
-pinned: false
----
-
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
->>>>>>> 139bcca1f2233be672f1caf5e05de430ac5ec512
