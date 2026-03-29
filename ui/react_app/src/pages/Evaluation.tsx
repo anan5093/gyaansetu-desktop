@@ -2,21 +2,22 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import Navbar from "../components/landing/Navbar";
 import FooterSection from "../components/landing/FooterSection";
 
-// 🔥 Lazy load chart (huge performance win)
+// 🔥 FIXED Lazy Load (Correct ComponentType)
 const ScatterChartComp = lazy(() =>
-  import("recharts").then((mod) => ({
-    default: () => {
-      const { ScatterChart, Scatter, XAxis, YAxis, Tooltip } = mod;
-      return (props: any) => (
-        <ScatterChart width={500} height={300}>
-          <XAxis dataKey="x" />
-          <YAxis dataKey="y" />
-          <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-          <Scatter data={props.data} />
-        </ScatterChart>
-      );
-    },
-  }))
+  import("recharts").then((mod) => {
+    const { ScatterChart, Scatter, XAxis, YAxis, Tooltip } = mod;
+
+    const ChartComponent = (props: any) => (
+      <ScatterChart width={500} height={300}>
+        <XAxis dataKey="x" />
+        <YAxis dataKey="y" />
+        <Tooltip cursor={{ strokeDasharray: "3 3" }} />
+        <Scatter data={props.data} />
+      </ScatterChart>
+    );
+
+    return { default: ChartComponent };
+  })
 );
 
 type EvaluationData = {
@@ -58,13 +59,11 @@ export default function Evaluation() {
       aria-label="AI model evaluation dashboard for NCERT RAG system"
       className="min-h-screen text-white"
     >
-
       {/* Navbar */}
       <Navbar />
 
       <div className="pt-24 px-6 md:px-10">
-
-        {/* Heading (SEO optimized) */}
+        {/* Heading */}
         <h1 className="text-3xl font-bold mb-6 animate-fadeIn">
           📊 AI Evaluation Dashboard
         </h1>
@@ -83,7 +82,6 @@ export default function Evaluation() {
 
         {data && (
           <div className="space-y-10 animate-fadeInUp">
-
             {/* Retrieval */}
             <div className="bg-white/5 p-6 rounded-xl">
               <h2 className="text-xl mb-2">
@@ -118,7 +116,6 @@ export default function Evaluation() {
                 <ScatterChartComp data={data.embedding} />
               </Suspense>
             </div>
-
           </div>
         )}
       </div>
