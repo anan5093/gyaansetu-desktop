@@ -7,3 +7,4 @@ requests==2.31.0
 numpy==1.26.4
 faiss-cpu==1.7.4
 scikit-learn==1.4.2
+sentence-transformers
