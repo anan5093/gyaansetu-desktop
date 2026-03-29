@@ -1,3 +1,4 @@
+
 FROM python:3.10-slim
 
 WORKDIR /app
@@ -8,8 +9,14 @@ COPY requirements.prod.txt .
 
 RUN pip install --no-cache-dir -r requirements.prod.txt
 
-# ✅ COPY EVERYTHING (SAFE FIX)
-COPY . .
+# ✅ Copy only required folders
+COPY api ./api
+COPY config ./config
+COPY rag ./rag
+COPY vector_store ./vector_store
+COPY llm ./llm
+
+# ❌ DO NOT COPY data folder
 
 EXPOSE 8000
 
