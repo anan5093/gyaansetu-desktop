@@ -24,10 +24,11 @@ def download_file(url, path):
 
     if not os.path.exists(path):
         print(f"⬇️ Downloading: {path}")
+
         r = requests.get(url)
 
         if r.status_code != 200:
-            raise Exception(f"Failed to download file: {url}")
+            raise Exception(f"❌ Failed to download file: {url}")
 
         with open(path, "wb") as f:
             f.write(r.content)
@@ -37,7 +38,7 @@ def download_file(url, path):
 
 app = FastAPI(
     title="GyaanSetu NCERT Tutor API",
-    version="1.3"
+    version="1.4"
 )
 
 # ==============================
@@ -45,7 +46,7 @@ app = FastAPI(
 # ==============================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # restrict later
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,7 +56,7 @@ app.include_router(router)
 
 
 # ==============================
-# ✅ BASIC ROUTES (IMPORTANT)
+# ✅ BASIC ROUTES
 # ==============================
 @app.get("/")
 def root():
@@ -83,6 +84,15 @@ def startup_event():
             print("⚠️ WARNING: OPENROUTER_API_KEY not found!")
 
         # ==============================
+        # 🌐 GET FILE URLS FROM ENV
+        # ==============================
+        FAISS_URL = os.getenv("FAISS_URL")
+        META_URL = os.getenv("META_URL")
+
+        if not FAISS_URL or not META_URL:
+            print("⚠️ WARNING: FAISS_URL or META_URL not set. Skipping download.")
+        
+        # ==============================
         # 📂 PATHS
         # ==============================
         base_path = "data/vector_store/class10"
@@ -91,20 +101,15 @@ def startup_event():
         meta_path = os.path.join(base_path, "science_meta.json")
 
         # ==============================
-        # ⬇️ DOWNLOAD FILES (IMPORTANT)
+        # ⬇️ DOWNLOAD FILES (SAFE)
         # ==============================
-        # 🔴 REPLACE THESE URLs
-        download_file(
-            "https://YOUR_PUBLIC_LINK/science_faiss.index",
-            index_path
-        )
+        if FAISS_URL:
+            download_file(FAISS_URL, index_path)
 
-        download_file(
-            "https://YOUR_PUBLIC_LINK/science_meta.json",
-            meta_path
-        )
+        if META_URL:
+            download_file(META_URL, meta_path)
 
-        print("✅ FAISS files ready")
+        print("✅ FAISS setup complete")
 
         # ==============================
         # 🧠 LOAD VECTOR STORE
