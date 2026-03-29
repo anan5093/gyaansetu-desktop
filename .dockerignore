@@ -1,52 +1,24 @@
-# ===============================
-# 🐳 Docker Ignore File (Optimized)
-# ===============================
-
-# Python cache
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-# Virtual environment
 .venv/
 env/
 venv/
 
-# Environment variables
 .env
 
-# Git
 .git/
 .gitignore
 
-# OS files
 .DS_Store
-
-# Logs
 *.log
 
-# ===============================
-# 🚫 FRONTEND (NOT NEEDED IN BACKEND DOCKER)
-# ===============================
 ui/
 
-# ===============================
-# 🚫 DATA (KEEP ONLY VECTOR STORE)
-# ===============================
-data/raw_dataset/
-data/cleaned_dataset/
-data/processed_chunks/
+data/   👈 IMPORTANT (ignore everything)
 
-# ===============================
-# 🚫 DEV FILES
-# ===============================
 scripts/
 *.ipynb
 *.md
-
-# ===============================
-# ⚠️ KEEP THIS (IMPORTANT)
-# ===============================
-# DO NOT IGNORE:
-# data/vector_store/
