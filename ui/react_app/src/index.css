@@ -247,3 +247,12 @@ textarea:focus {
   0%, 80%, 100% { opacity: 0.2; }
   40% { opacity: 1; }
 }
+/* 🌍 Global UI Fixes */
+html, body {
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
