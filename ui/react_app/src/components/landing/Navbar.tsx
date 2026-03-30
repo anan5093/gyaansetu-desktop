@@ -1,111 +1,158 @@
-return (
-  <nav
-    aria-label="Main Navigation"
-    className={`fixed top-0 w-full z-50 transition-all duration-500 ease-in-out
-    ${showNav ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"}
-    backdrop-blur-2xl bg-gradient-to-r from-black/40 via-black/20 to-black/40
-    border-b border-white/10 ${scrolled ? "shadow-lg shadow-black/30" : ""}`}
-  >
-    <div className="flex justify-between items-center px-4 md:px-10 py-3 md:py-4 text-white">
+import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
 
-      {/* Logo */}
-      <button
-        onClick={() => navigate("/")}
-        className="font-semibold text-base md:text-lg whitespace-nowrap hover:scale-105 transition-transform"
-      >
-        ✨ <span className="text-orange-500">NCERT</span> Companion
-      </button>
+export default function Navbar() {
+  const navigate = useNavigate();
+  const location = useLocation();
 
-      {/* Desktop Nav */}
-      <div className="hidden md:flex gap-6 lg:gap-8 items-center">
+  const [active, setActive] = useState("hero");
 
-        {sections.map((sec) => (
-          <button
-            key={sec}
-            onClick={() => goToSection(sec)}
-            className={`relative pb-1 capitalize ${
-              active === sec && location.pathname === "/"
-                ? "text-orange-400"
-                : "hover:text-orange-300"
-            }`}
-          >
-            {sec}
-            <span
-              className={`absolute left-0 bottom-0 h-[2px] bg-orange-400 transition-all ${
-                active === sec && location.pathname === "/"
-                  ? "w-full"
-                  : "w-0"
-              }`}
-            />
-          </button>
-        ))}
+  // Apple navbar states
+  const [showNav, setShowNav] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
 
+  // Mobile menu
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const sections = ["hero", "features", "about", "vision"];
+
+  // Active section tracking
+  useEffect(() => {
+    if (location.pathname !== "/") return;
+
+    const observers: IntersectionObserver[] = [];
+
+    sections.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) setActive(id);
+        },
+        { threshold: 0.6 }
+      );
+
+      observer.observe(el);
+      observers.push(observer);
+    });
+
+    return () => observers.forEach((obs) => obs.disconnect());
+  }, [location.pathname]);
+
+  // Scroll behavior
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      setScrolled(currentScrollY > 10);
+
+      if (currentScrollY > lastScrollY && currentScrollY > 80) {
+        setShowNav(false);
+      } else {
+        setShowNav(true);
+      }
+
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
+
+  // Navigation
+  const goToSection = useCallback(
+    (id: string) => {
+      if (location.pathname === "/") {
+        document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+      } else {
+        navigate("/");
+        setTimeout(() => {
+          document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+        }, 300);
+      }
+    },
+    [location.pathname, navigate]
+  );
+
+  return (
+    <nav
+      className={`fixed top-0 w-full z-50 transition-all duration-500
+      ${showNav ? "translate-y-0" : "-translate-y-full"}
+      backdrop-blur-2xl bg-black/30 border-b border-white/10
+      ${scrolled ? "shadow-lg shadow-black/30" : ""}`}
+    >
+      <div className="flex justify-between items-center px-4 md:px-10 py-3 text-white">
+
+        {/* Logo */}
         <button
-          onClick={() => navigate("/evaluation")}
-          className={`relative pb-1 ${
-            location.pathname === "/evaluation"
-              ? "text-orange-400"
-              : "hover:text-orange-300"
-          }`}
+          onClick={() => navigate("/")}
+          className="font-semibold text-lg"
         >
-          Evaluation
+          ✨ <span className="text-orange-500">NCERT</span> Companion
         </button>
 
+        {/* Desktop Nav */}
+        <div className="hidden md:flex gap-6 items-center">
+          {sections.map((sec) => (
+            <button
+              key={sec}
+              onClick={() => goToSection(sec)}
+              className={active === sec ? "text-orange-400" : ""}
+            >
+              {sec}
+            </button>
+          ))}
+
+          <button onClick={() => navigate("/evaluation")}>
+            Evaluation
+          </button>
+
+          <button
+            onClick={() => navigate("/chat")}
+            className="bg-orange-500 px-4 py-2 rounded-full"
+          >
+            Start Chat
+          </button>
+        </div>
+
+        {/* Mobile Toggle */}
         <button
-          onClick={() => navigate("/chat")}
-          className="ml-2 px-4 py-2 rounded-full bg-orange-500 hover:bg-orange-600"
+          className="md:hidden text-2xl"
+          onClick={() => setMenuOpen(!menuOpen)}
         >
-          Start Chat
+          ☰
         </button>
       </div>
 
-      {/* Mobile Hamburger */}
-      <button
-        className="md:hidden text-2xl"
-        onClick={() => setMenuOpen(!menuOpen)}
-      >
-        ☰
-      </button>
-    </div>
+      {/* Mobile Menu */}
+      {menuOpen && (
+        <div className="md:hidden flex flex-col items-center gap-5 py-6 bg-black/95 text-white">
+          {sections.map((sec) => (
+            <button
+              key={sec}
+              onClick={() => {
+                goToSection(sec);
+                setMenuOpen(false);
+              }}
+            >
+              {sec}
+            </button>
+          ))}
 
-    {/* Mobile Menu */}
-    {menuOpen && (
-      <div className="md:hidden bg-black/95 backdrop-blur-xl flex flex-col items-center gap-6 py-6 text-white">
-
-        {sections.map((sec) => (
-          <button
-            key={sec}
-            onClick={() => {
-              goToSection(sec);
-              setMenuOpen(false);
-            }}
-            className={`capitalize text-lg ${
-              active === sec ? "text-orange-400" : ""
-            }`}
-          >
-            {sec}
+          <button onClick={() => navigate("/evaluation")}>
+            Evaluation
           </button>
-        ))}
 
-        <button
-          onClick={() => {
-            navigate("/evaluation");
-            setMenuOpen(false);
-          }}
-        >
-          Evaluation
-        </button>
-
-        <button
-          onClick={() => {
-            navigate("/chat");
-            setMenuOpen(false);
-          }}
-          className="bg-orange-500 px-6 py-2 rounded-full"
-        >
-          Start Chat
-        </button>
-      </div>
-    )}
-  </nav>
-);
+          <button
+            onClick={() => navigate("/chat")}
+            className="bg-orange-500 px-6 py-2 rounded-full"
+          >
+            Start Chat
+          </button>
+        </div>
+      )}
+    </nav>
+  );
+}
