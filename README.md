@@ -1,103 +1,114 @@
-# GyaanSetu — AI-Powered NCERT Tutor
+# GyaanSetu — Desktop Edition 🎓
 
-> **GyaanSetu** (ज्ञानसेतु) means *Bridge of Knowledge* — an intelligent RAG-based tutor that answers NCERT curriculum questions using AI.
+> **GyaanSetu** (ज्ञानसेतु) means *Bridge of Knowledge* — a privacy-first, locally-run AI tutor that answers NCERT curriculum questions using Retrieval-Augmented Generation (RAG).
 
 [![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.135-green?logo=fastapi)](https://fastapi.tiangolo.com/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.32+-FF4B4B?logo=streamlit)](https://streamlit.io/)
+[![Ollama](https://img.shields.io/badge/LLM-Ollama%20%2F%20Gemma-blueviolet)](https://ollama.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 ---
 
 ## Table of Contents
 
-- [What is GyaanSetu?](#what-is-gyaansetu)
+- [What is GyaanSetu Desktop?](#what-is-gyaansetu-desktop)
 - [Key Features](#key-features)
 - [Architecture](#architecture)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
-  - [Backend Setup](#backend-setup)
-  - [Frontend Setup](#frontend-setup)
-  - [Docker Setup](#docker-setup)
+  - [Installation](#installation)
+  - [Running the App](#running-the-app)
+  - [Optional: FastAPI Backend](#optional-fastapi-backend)
 - [Configuration](#configuration)
-- [API Reference](#api-reference)
-- [Evaluation](#evaluation)
+- [ONNX Model](#onnx-model)
+- [Scripts](#scripts)
 - [Getting Help](#getting-help)
 - [Contributing](#contributing)
 - [Maintainers](#maintainers)
 
 ---
 
-## What is GyaanSetu?
+## What is GyaanSetu Desktop?
 
-GyaanSetu is a full-stack educational AI assistant built around **Retrieval-Augmented Generation (RAG)**. It ingests NCERT textbook content from HuggingFace, indexes it into a FAISS vector store, and uses a large language model to answer student questions with relevant context sourced directly from the curriculum.
+GyaanSetu Desktop is a **fully local, offline-capable** AI study companion for CBSE students in **Class 9 and Class 10 Science**. It uses a RAG pipeline to retrieve the most relevant chunks from NCERT textbooks (loaded from HuggingFace) and streams answers through a locally-hosted large language model via [Ollama](https://ollama.com/).
 
-The system currently supports **Class 10 Science** and is designed to be extended to other classes and subjects.
+The entire stack — embeddings, vector search, and LLM inference — runs on your machine. No data leaves your computer.
+
+> **Desktop Edition vs. Web Edition:** The Desktop Edition replaces the React + FastAPI web stack with a single-command [Streamlit](https://streamlit.io/) UI that any student can run with one Python command.
 
 ---
 
 ## Key Features
 
-- 🔍 **RAG-powered answers** — retrieves the most relevant NCERT chunks before generating a response
-- 🧠 **Semantic search** — uses `sentence-transformers/all-MiniLM-L6-v2` embeddings and FAISS for fast similarity search
-- 🤖 **Pluggable LLM** — supports [OpenRouter](https://openrouter.ai/) (any hosted model) or a built-in mock LLM for offline development
-- 📊 **Built-in evaluation** — measures retrieval accuracy, generation quality, latency, and embedding coherence
-- ⚡ **FastAPI backend** — clean REST API with CORS support, health checks, and automatic docs at `/docs`
-- 🎨 **React frontend** — landing page, interactive chat interface, and an evaluation dashboard
-- 🐳 **Docker support** — single-command containerized deployment
+- 🖥️ **One-command launch** — `python run_app.py` starts the full Streamlit interface
+- 🔒 **Privacy-first** — all processing happens locally; no API keys required for the LLM
+- 🧠 **RAG-powered answers** — FAISS semantic search retrieves relevant NCERT chunks before answering
+- ⚡ **Streaming responses** — answers stream token-by-token via `st.write_stream`
+- 📚 **Multi-class support** — switch between Class 9 and Class 10 Science from the sidebar
+- 💬 **Conversation memory** — maintains per-session chat history for multi-turn questions
+- 🔁 **Graceful fallback** — falls back to a safe response if Ollama is unreachable
+- 🧩 **ONNX embeddings** — quantized `all-MiniLM-L6-v2` model in `onnx_model/` for fast CPU inference
 
 ---
 
 ## Architecture
 
 ```
-HuggingFace Dataset
+HuggingFace Dataset (NCERT Class 9 / 10 Science)
         │
         ▼
 ┌─────────────────────────────────────────┐
 │           Ingestion Pipeline            │
 │  HFLoader → Cleaner → Chunker → Embedder│
 └──────────────────┬──────────────────────┘
-                   │  FAISS index + metadata
+                   │  FAISS index + metadata JSON
                    ▼
 ┌──────────────────────────────────────────┐
 │              RAG Service                 │
-│  embed query → FAISS search → build      │
-│  context → LLM (OpenRouter / MockLLM)    │
+│  embed query → FAISS search →            │
+│  build context → Gemma (Ollama)          │
 └──────────────────┬───────────────────────┘
-                   │  JSON response
+                   │  streaming tokens
                    ▼
 ┌──────────────────────────────────────────┐
-│            FastAPI Backend               │
-│  POST /chat  GET /evaluation  GET /health│
-└──────────────────┬───────────────────────┘
-                   │  HTTP
-                   ▼
-┌──────────────────────────────────────────┐
-│         React Frontend (Vite)            │
-│   Home  │  Chat  │  Evaluation Dashboard │
+│         Streamlit UI  (ui/app.py)        │
+│  Sidebar (class select) │ Chat window    │
 └──────────────────────────────────────────┘
 ```
+
+The LLM is served by a local [Ollama](https://ollama.com/) instance (default model: `gemma4:e2b`). For resource-constrained environments, you can point `OLLAMA_HOST` to an ngrok tunnel from a Colab notebook instead.
 
 ---
 
 ## Project Structure
 
 ```
-GyaanSetu/
-├── api/                    # FastAPI application (routes, schemas)
-├── config/                 # Environment-based settings
-├── evaluation/             # Evaluation framework & test data
-├── ingestion/              # Data loading, cleaning, chunking, embedding
-├── llm/                    # LLM factory, OpenRouter client, MockLLM, prompt builder
-├── rag/                    # Core RAG service (retrieve → context → generate)
-├── scripts/                # Utility scripts for ingestion, RAG, and retrieval testing
-├── ui/react_app/           # React 19 + Vite frontend (Home, Chat, Evaluation pages)
-├── vector_store/           # FAISS index builder and loader
-├── Dockerfile
+gyaansetu-desktop/
+├── api/                    # Optional FastAPI backend (routes, schemas, lifespan)
+├── config/
+│   └── settings.py         # All environment-based settings with typed helpers
+├── convert_to_onnx.py      # One-time script: export sentence-transformer → ONNX
+├── data/                   # Raw + processed NCERT dataset (auto-created by ingestion)
+├── ingestion/              # HFLoader, cleaner, chunker, embedder
+├── llm/
+│   ├── gemma_client.py     # Streaming Ollama client with chat-history injection
+│   ├── llm_factory.py      # Factory with health-check and FallbackLLM
+│   └── prompt_builder.py   # Prompt templates (stateless & multi-turn)
+├── onnx_model/             # Pre-exported ONNX tokenizer & config for all-MiniLM-L6-v2
+├── rag/
+│   └── rag_service.py      # Core pipeline: retrieve → build context → stream
 ├── requirements.txt
-└── README.md
+├── run_app.py              # 🚀 Main entry point — launches Streamlit
+├── scripts/
+│   ├── test_ingestion.py   # Download & process the NCERT dataset
+│   ├── test_rag.py         # End-to-end RAG smoke test
+│   └── test_retrieval.py   # FAISS retrieval accuracy check
+├── ui/
+│   └── app.py              # Streamlit chat interface
+└── vector_store/
+    ├── build_faiss_index.py # Builds FAISS index from processed chunks
+    └── faiss_loader.py      # Loads index + metadata and exposes .search()
 ```
 
 ---
@@ -106,27 +117,30 @@ GyaanSetu/
 
 ### Prerequisites
 
-| Tool | Minimum Version |
-|------|----------------|
-| Python | 3.11 |
-| Node.js | 18 |
-| npm | 9 |
-| Docker *(optional)* | 20 |
+| Tool | Minimum Version | Notes |
+|------|----------------|-------|
+| Python | 3.11 | Earlier versions untested |
+| Ollama | Latest | [Install guide](https://ollama.com/download) |
+| Gemma model | `gemma4:e2b` | Pulled via `ollama pull gemma4:e2b` |
 
-### Backend Setup
+> **No GPU required.** The app runs on CPU. ONNX embeddings and Ollama CPU inference are both supported.
+
+---
+
+### Installation
 
 **1. Clone the repository**
 
 ```bash
-git clone https://github.com/anan5093/GyaanSetu.git
-cd GyaanSetu
+git clone https://github.com/anan5093/gyaansetu-desktop.git
+cd gyaansetu-desktop
 ```
 
 **2. Create and activate a virtual environment**
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 ```
 
 **3. Install Python dependencies**
@@ -135,185 +149,136 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-**4. Configure environment variables**
+**4. Pull the Gemma model into Ollama**
 
-Copy the example below into a `.env` file in the project root and fill in your values:
-
-```dotenv
-# LLM (set USE_MOCK_LLM=false to use a real model)
-USE_MOCK_LLM=true
-OPENROUTER_API_KEY=your_openrouter_key_here
-OPENROUTER_MODEL=nvidia/nemotron-3-super:free
-
-# Dataset / retrieval
-CLASS_ID=10
-SUBJECT=science
-TOP_K=3
-SCORE_THRESHOLD=0.3
-
-# API server
-API_HOST=127.0.0.1
-API_PORT=8000
-FRONTEND_URL=http://localhost:5173
-ENABLE_LOGS=true
+```bash
+ollama pull gemma4:e2b
 ```
 
-**5. Run the data ingestion pipeline**
-
-This step downloads the NCERT dataset from HuggingFace, cleans it, chunks it, and builds the FAISS index.
+**5. Build the FAISS index** (downloads NCERT data from HuggingFace — one-time step)
 
 ```bash
 python scripts/test_ingestion.py
 python -m vector_store.build_faiss_index
 ```
 
-**6. Start the API server**
+This creates the `data/` directory with the processed dataset and the FAISS index files.
+
+---
+
+### Running the App
+
+```bash
+python run_app.py
+```
+
+Streamlit opens automatically at **http://localhost:8501**. Use the sidebar to switch between Class 9 and Class 10 Science, then type your question in the chat box.
+
+---
+
+### Optional: FastAPI Backend
+
+The `api/` folder contains a standalone FastAPI server for programmatic access:
 
 ```bash
 uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-Interactive API docs are available at [http://localhost:8000/docs](http://localhost:8000/docs).
+Interactive docs are available at **http://localhost:8000/docs**.
 
----
-
-### Frontend Setup
+**Example request:**
 
 ```bash
-cd ui/react_app
-npm install
-npm run dev
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What is Newton'\''s second law of motion?"}'
 ```
 
-The app is served at [http://localhost:5173](http://localhost:5173) by default.
+**Example response:**
 
----
-
-### Docker Setup
-
-Build and run the full backend in a single container:
-
-```bash
-docker build -t gyaansetu .
-docker run -p 8000:8000 \
-  -e USE_MOCK_LLM=false \
-  -e OPENROUTER_API_KEY=your_key_here \
-  -e FAISS_URL=https://your-host/science_faiss.index \
-  -e META_URL=https://your-host/science_meta.json \
-  gyaansetu
+```json
+{
+  "answer": "Newton's second law states that the force acting on an object equals its mass times acceleration (F = ma).",
+  "sources": [
+    { "topic": "Force and Laws of Motion", "chapter": "Force and Laws of Motion", "type": "concept" }
+  ],
+  "session": "stateless",
+  "metrics": { "latency_sec": 0.38, "chunks_used": 3, "mode": "stateless" }
+}
 ```
-
-The API is then available at [http://localhost:8000](http://localhost:8000).
 
 ---
 
 ## Configuration
 
-All settings are controlled via environment variables (or a `.env` file loaded by `python-dotenv`).
+All settings are read from environment variables or a `.env` file in the project root.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CLASS_ID` | `10` | NCERT class number |
+| `CLASS_ID` | `10` | NCERT class (`9` or `10`) |
 | `SUBJECT` | `science` | Subject name |
-| `TOP_K` | `3` | Number of chunks retrieved per query |
-| `SCORE_THRESHOLD` | `0.3` | Minimum cosine-similarity score to include a chunk |
-| `USE_MOCK_LLM` | `true` | `false` to use a real OpenRouter model |
-| `OPENROUTER_API_KEY` | — | Your [OpenRouter](https://openrouter.ai/) API key |
-| `OPENROUTER_MODEL` | `nvidia/nemotron-3-super:free` | Model identifier on OpenRouter |
-| `MAX_TOKENS` | `300` | Maximum tokens for LLM responses |
-| `API_HOST` | `127.0.0.1` | Host for the FastAPI server |
-| `API_PORT` | `8000` | Port for the FastAPI server |
-| `FRONTEND_URL` | `http://localhost:5173` | Allowed CORS origin |
-| `ENABLE_LOGS` | `true` | Print verbose startup and request logs |
-| `FAISS_URL` | — | URL to download the pre-built FAISS index (used in Docker/cloud deployments) |
-| `META_URL` | — | URL to download the FAISS metadata JSON (used in Docker/cloud deployments) |
+| `TOP_K` | `7` | Number of FAISS chunks retrieved per query |
+| `SCORE_THRESHOLD` | `0.20` | Minimum cosine-similarity score to include a chunk |
+| `OLLAMA_HOST` | `https://…ngrok-free.dev` | Ollama server URL (local or ngrok tunnel) |
+| `OLLAMA_MODEL` | `gemma4:e2b` | Model name served by Ollama |
+| `LLM_TEMPERATURE` | `0.1` | Low temperature for factual, curriculum-accurate answers |
+| `LLM_NUM_CTX` | `2048` | Context window size (tokens) |
+| `LLM_TIMEOUT` | `120` | Request timeout in seconds (increase for tunnel use) |
+| `CHAT_MAX_HISTORY_TURNS` | `6` | Number of past conversation turns to keep in memory |
+| `MAX_CONTEXT_CHARS` | `1500` | Maximum characters of NCERT context per prompt |
+| `API_HOST` | `127.0.0.1` | Host for the optional FastAPI server |
+| `API_PORT` | `8000` | Port for the optional FastAPI server |
+| `ENABLE_LOGS` | `true` | Print verbose startup and retrieval logs |
 
----
+**Example `.env` (local Ollama):**
 
-## API Reference
-
-### `POST /chat`
-
-Ask a question about the NCERT curriculum.
-
-**Request body**
-
-```json
-{
-  "question": "What is Newton's second law of motion?"
-}
+```dotenv
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_MODEL=gemma4:e2b
+CLASS_ID=10
+TOP_K=5
+ENABLE_LOGS=true
 ```
 
-**Response**
+**Example `.env` (Colab ngrok tunnel):**
 
-```json
-{
-  "answer": "Newton's second law states that ...",
-  "sources": [
-    { "topic": "Force and Laws of Motion", "chapter": "Force and Laws of Motion", "type": "concept" }
-  ],
-  "metrics": {
-    "latency": 0.42,
-    "chunks_used": 3
-  }
-}
+```dotenv
+OLLAMA_HOST=https://your-ngrok-url.ngrok-free.app
+OLLAMA_MODEL=gemma4:e2b
+LLM_TIMEOUT=180
 ```
 
 ---
 
-### `GET /evaluation`
+## ONNX Model
 
-Runs the full evaluation suite and returns metrics.
+The `onnx_model/` directory contains a pre-exported ONNX version of `sentence-transformers/all-MiniLM-L6-v2`. This enables faster, dependency-light embedding on CPU without needing a full PyTorch installation at runtime.
 
-```json
-{
-  "status": "success",
-  "evaluation": {
-    "retrieval": { ... },
-    "generation": { ... },
-    "latency": { ... },
-    "embedding": { ... }
-  }
-}
-```
-
----
-
-### `GET /health`
-
-Returns the server and RAG initialization status.
-
-```json
-{ "status": "ok", "rag_loaded": true }
-```
-
----
-
-## Evaluation
-
-GyaanSetu ships with a built-in evaluation framework under `evaluation/`. It measures:
-
-| Module | What it measures |
-|--------|-----------------|
-| `retrieval_eval.py` | Whether relevant chunks are retrieved for test questions |
-| `generation_eval.py` | Quality of generated answers against expected responses |
-| `latency_eval.py` | End-to-end query latency (p50 / p95) |
-| `embedding_eval.py` | Semantic coherence of keyword embeddings |
-
-Test data lives in `evaluation/test_data.json`. You can run the evaluation via the `/evaluation` endpoint or directly:
+To regenerate it (requires `optimum[onnxruntime]`):
 
 ```bash
-python scripts/test_rag.py
+pip install optimum[onnxruntime]
+python convert_to_onnx.py
 ```
+
+---
+
+## Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/test_ingestion.py` | Download and process NCERT data from HuggingFace |
+| `scripts/test_rag.py` | Run a sample question through the full RAG pipeline |
+| `scripts/test_retrieval.py` | Check that FAISS retrieval returns relevant chunks |
+| `convert_to_onnx.py` | One-time export of the sentence-transformer model to ONNX |
 
 ---
 
 ## Getting Help
 
-- **Bug reports & feature requests** — open an issue on the [GitHub Issues](https://github.com/anan5093/GyaanSetu/issues) page
-- **Interactive API docs** — available at `http://localhost:8000/docs` when the server is running
-- **OpenRouter models** — see [openrouter.ai/models](https://openrouter.ai/models) for supported LLM identifiers
-- **NCERT dataset** — hosted on HuggingFace at [`KadamParth/NCERT_Science_10th`](https://huggingface.co/datasets/KadamParth/NCERT_Science_10th)
+- **Bug reports & feature requests** — open an issue on [GitHub Issues](https://github.com/anan5093/gyaansetu-desktop/issues)
+- **Ollama setup** — see the [Ollama documentation](https://ollama.com/download) for installation and model management
+- **NCERT datasets** — hosted on HuggingFace: [`KadamParth/NCERT_Science_9th`](https://huggingface.co/datasets/KadamParth/NCERT_Science_9th) and [`KadamParth/NCERT_Science_10th`](https://huggingface.co/datasets/KadamParth/NCERT_Science_10th)
 
 ---
 
@@ -321,25 +286,26 @@ python scripts/test_rag.py
 
 Contributions are welcome! Please open an issue first to discuss significant changes.
 
-1. Fork the repository and create a feature branch
-2. Make your changes with clear commit messages
-3. Ensure existing tests pass:
+1. Fork the repository and create a feature branch from `main`
+2. Make your changes with clear, descriptive commit messages
+3. Verify the pipeline still works end-to-end:
 
 ```bash
 python scripts/test_ingestion.py
 python scripts/test_rag.py
-python scripts/test_vector_retrieval.py
+python scripts/test_retrieval.py
 ```
+
 4. Open a pull request against `main`
 
 ---
 
 ## Maintainers
 
-| Name | GitHub |
-|------|--------|
-| Anand | [@anan5093](https://github.com/anan5093) |
+| Name | GitHub | Contact |
+|------|--------|---------|
+| Anand | [@anan5093](https://github.com/anan5093) | [anand.ar1806@gmail.com](mailto:anand.ar1806@gmail.com) |
 
 ---
 
-*GyaanSetu is an open-source project. See [LICENSE](LICENSE) for details.*
+*GyaanSetu Desktop is an open-source project. See [LICENSE](LICENSE) for details.*
