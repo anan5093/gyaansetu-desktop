@@ -1,147 +1,207 @@
 import json
 import os
 import re
+from config import settings
 
 
-class DatasetCleaner:
+class DatasetBuilder:
+    """
+    Stage 2 — Cleaned rows → Tutor chunks (concept + QA pairs).
+    Reads from:  data/cleaned_dataset/class{id}/cleaned_rows.json
+    Writes to:   data/chunks/class{id}/tutor_chunks.json
+
+    Each chunk carries full metadata so FAISS results can be used
+    directly in routes.py without post-processing.
+    """
+
+    # Maps known topic keywords → chapter names
+    CHAPTER_MAP = {
+        "chemical reaction":    "Chemical Reactions and Equations",
+        "acid":                 "Acids, Bases and Salts",
+        "base":                 "Acids, Bases and Salts",
+        "salt":                 "Acids, Bases and Salts",
+        "metal":                "Metals and Non-metals",
+        "non-metal":            "Metals and Non-metals",
+        "carbon":               "Carbon and its Compounds",
+        "life process":         "Life Processes",
+        "respiration":          "Life Processes",
+        "photosynthesis":       "Life Processes",
+        "control":              "Control and Coordination",
+        "nervous":              "Control and Coordination",
+        "hormone":              "Control and Coordination",
+        "reproduction":         "How do Organisms Reproduce",
+        "heredity":             "Heredity and Evolution",
+        "evolution":            "Heredity and Evolution",
+        "light":                "Light – Reflection and Refraction",
+        "reflection":           "Light – Reflection and Refraction",
+        "refraction":           "Light – Reflection and Refraction",
+        "electricity":          "Electricity",
+        "magnetic":             "Magnetic Effects of Electric Current",
+        "energy":               "Sources of Energy",
+        "environment":          "Our Environment",
+        "ecosystem":            "Our Environment",
+        "natural resource":     "Management of Natural Resources",
+    }
 
     def __init__(
         self,
-        class_id: int,
-        subject: str,
+        class_id: int = None,
+        subject: str = None,
         base_data_dir: str = "data",
-        chunk_size: int = 320,
-        overlap: int = 60
     ):
-
-        self.class_id = class_id
-        self.subject = subject.lower()
+        self.class_id      = class_id or settings.CLASS_ID
+        self.subject       = (subject or settings.SUBJECT).lower()
+        self.base_data_dir = base_data_dir
 
         self.input_path = os.path.join(
             base_data_dir,
-            "raw_dataset",
-            f"class{class_id}",
-            f"ncert_{self.subject}{class_id}.json"
+            "cleaned_dataset",
+            f"class{self.class_id}",
+            "cleaned_rows.json",
         )
-
         self.output_path = os.path.join(
             base_data_dir,
-            "cleaned_dataset",
-            f"class{class_id}",
-            "cleaned_rows.json"
+            "chunks",
+            f"class{self.class_id}",
+            "tutor_chunks.json",
         )
 
-        self.chunk_size = chunk_size
-        self.overlap = overlap
+    # ==============================
+    # 📖 CHAPTER INFERENCE
+    # ==============================
+    def _infer_chapter(self, topic: str) -> str:
+        if not topic:
+            return "General"
+        topic_lower = topic.lower()
+        for keyword, chapter in self.CHAPTER_MAP.items():
+            if keyword in topic_lower:
+                return chapter
+        return topic  # Fallback: use topic itself
 
     # ==============================
-    # Sentence Aware Chunking
+    # 🖊️ CONCEPT CHUNK FORMATTER
     # ==============================
-
-    def chunk_text(self, text):
-
-        if "Question:" in text:
-            return [text.strip()]
-
-        sentences = re.split(r'(?<=[.!?])\s+', text)
-
-        chunks = []
-        current_chunk = ""
-
-        for sent in sentences:
-
-            sent = sent.strip()
-            if not sent:
-                continue
-
-            if len(sent) > self.chunk_size:
-
-                if current_chunk:
-                    chunks.append(current_chunk.strip())
-                    current_chunk = ""
-
-                start = 0
-                while start < len(sent):
-                    part = sent[start:start + self.chunk_size]
-                    chunks.append(part.strip())
-                    start += self.chunk_size - self.overlap
-
-                continue
-
-            if len(current_chunk) + len(sent) + 1 <= self.chunk_size:
-
-                current_chunk = (
-                    current_chunk + " " + sent
-                    if current_chunk else sent
-                )
-
-            else:
-
-                chunks.append(current_chunk.strip())
-
-                overlap_text = (
-                    current_chunk[-self.overlap:]
-                    if len(current_chunk) > self.overlap
-                    else current_chunk
-                )
-
-                current_chunk = overlap_text + " " + sent
-
-        if current_chunk:
-            chunks.append(current_chunk.strip())
-
-        return chunks
+    def _format_concept(self, topic: str, explanation: str) -> str:
+        return (
+            f"=== CONCEPT ===\n"
+            f"Topic: {topic}\n"
+            f"Explanation: {explanation}"
+        )
 
     # ==============================
-    # Build Clean Dataset ⭐ IMPROVED
+    # ❓ QA CHUNK FORMATTER
     # ==============================
+    def _format_qa(
+        self,
+        topic: str,
+        difficulty: str,
+        qtype: str,
+        question: str,
+        answer: str,
+    ) -> str:
+        return (
+            f"=== EXAM QUESTION ===\n"
+            f"Topic: {topic}\n"
+            f"Difficulty: {difficulty} | Type: {qtype}\n"
+            f"Question: {question}\n"
+            f"Answer: {answer}"
+        )
 
-    def build_clean_dataset(self):
+    # ==============================
+    # 🏗️ BUILD TUTOR CHUNKS
+    # ==============================
+    def build_chunks(self) -> list[dict]:
+        print(f"\n📦 Building tutor chunks → Class {self.class_id} | Subject: {self.subject}")
+        print(f"   Input : {self.input_path}")
 
-        print(f"🧹 Cleaning dataset → Class {self.class_id} {self.subject}")
+        if not os.path.exists(self.input_path):
+            raise FileNotFoundError(
+                f"Cleaned dataset not found: {self.input_path}\n"
+                f"Run DatasetCleaner.build_clean_dataset() first."
+            )
 
         with open(self.input_path, "r", encoding="utf-8") as f:
             rows = json.load(f)
 
-        print("🔎 TOTAL ROWS:", len(rows))
-        print("🔎 SAMPLE ROW:", rows[0])
+        print(f"   Cleaned rows loaded: {len(rows)}")
 
-        cleaned_rows = []
+        all_chunks  = []
+        seen_chunks = set()
+        chunk_id    = 0
 
         for row in rows:
+            text       = row.get("text", "")
+            topic      = row.get("topic", "")
+            difficulty = row.get("difficulty")
+            qtype      = row.get("question_type")
+            complexity = row.get("complexity")
+            source     = row.get("source", f"ncert_class{self.class_id}_{self.subject}")
+            chapter    = self._infer_chapter(topic)
 
-            # ⭐ Build unified text field from HF schema
-            explanation = row.get("Explanation", "").strip()
-            question = row.get("Question", "").strip()
-            answer = row.get("Answer", "").strip()
-            topic = row.get("Topic", "").strip()
+            # Parse structured fields out of merged text
+            explanation_match = re.search(r"Explanation:(.*?)Question:", text, re.DOTALL)
+            question_match    = re.search(r"Question:(.*?)Answer:", text, re.DOTALL)
+            answer_match      = re.search(r"Answer:(.*)", text, re.DOTALL)
 
-            merged_text = (
-                f"Topic: {topic}. "
-                f"Explanation: {explanation} "
-                f"Question: {question} "
-                f"Answer: {answer}"
-            ).strip()
+            explanation = explanation_match.group(1).strip() if explanation_match else ""
+            question    = question_match.group(1).strip()    if question_match    else ""
+            answer      = answer_match.group(1).strip()      if answer_match      else ""
 
-            text_chunks = self.chunk_text(merged_text)
+            # ── Concept chunk ──────────────────────────────────────────
+            if explanation and len(explanation) > 50:
+                concept_text = self._format_concept(topic, explanation)
+                key = concept_text.lower().strip()
+                if key not in seen_chunks:
+                    seen_chunks.add(key)
+                    all_chunks.append({
+                        "chunk_id":     chunk_id,
+                        "text":         concept_text,
+                        "type":         "concept",
+                        "topic":        topic,
+                        "class":        self.class_id,
+                        "subject":      self.subject,
+                        "chapter":      chapter,
+                        "difficulty":   difficulty,
+                        "question_type": qtype,
+                        "complexity":   complexity,
+                        "source":       source,
+                    })
+                    chunk_id += 1
 
-            for chunk in text_chunks:
+            # ── QA chunk ───────────────────────────────────────────────
+            if question and answer:
+                qa_text = self._format_qa(topic, difficulty, qtype, question, answer)
+                key = qa_text.lower().strip()
+                if key not in seen_chunks:
+                    seen_chunks.add(key)
+                    all_chunks.append({
+                        "chunk_id":     chunk_id,
+                        "text":         qa_text,
+                        "type":         "qa",
+                        "topic":        topic,
+                        "class":        self.class_id,
+                        "subject":      self.subject,
+                        "chapter":      chapter,
+                        "difficulty":   difficulty,
+                        "question_type": qtype,
+                        "complexity":   complexity,
+                        "source":       source,
+                    })
+                    chunk_id += 1
 
-                cleaned_rows.append({
-                    "text": chunk,
-                    "topic": topic,
-                    "difficulty": row.get("Difficulty"),
-                    "question_type": row.get("QuestionType"),
-                    "complexity": row.get("QuestionComplexity")
-                })
-
-        print(f"✅ Cleaned rows created: {len(cleaned_rows)}")
-
+        print(f"✅ Total tutor chunks created : {len(all_chunks)}")
         os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
 
         with open(self.output_path, "w", encoding="utf-8") as f:
-            json.dump(cleaned_rows, f, ensure_ascii=False, indent=2)
+            json.dump(all_chunks, f, ensure_ascii=False, indent=2)
 
-        print(f"💾 Saved at {self.output_path}")
+        print(f"💾 Saved → {self.output_path}\n")
+        return all_chunks
 
-        return cleaned_rows
+
+# ==============================
+# 🏃 CLI RUNNER
+# ==============================
+if __name__ == "__main__":
+    builder = DatasetBuilder()
+    builder.build_chunks()

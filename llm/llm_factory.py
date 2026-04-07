@@ -1,6 +1,11 @@
-from config.settings import settings
-from llm.mock_llm import MockLLM
-from llm.openrouter_client import OpenRouterClient
+from llm.gemma_client import GemmaClient
+import requests
+
+
+# ===============================
+# 🔥 GLOBAL LLM CACHE (IMPORTANT)
+# ===============================
+_LLM_INSTANCE = None
 
 
 class LLMFactory:
@@ -8,31 +13,54 @@ class LLMFactory:
     @staticmethod
     def create():
 
-        # 🧪 MOCK MODE (SAFE DEFAULT)
-        if settings.USE_MOCK_LLM:
-            if settings.ENABLE_LOGS:
-                print("⚙️ LLM Mode: MOCK")
-            return MockLLM()
+        global _LLM_INSTANCE
 
-        # 🚨 SAFETY: If API key missing → fallback
-        if not settings.OPENROUTER_API_KEY:
-            print("⚠️ No OpenRouter API key found. Falling back to MOCK.")
-            return MockLLM()
+        # 🔥 RETURN EXISTING INSTANCE (CRITICAL)
+        if _LLM_INSTANCE is not None:
+            return _LLM_INSTANCE
 
-        # 🌐 REAL LLM MODE
         try:
-            if settings.ENABLE_LOGS:
-                print("⚙️ LLM Mode: OPENROUTER")
+            print("⚙️ LLM Mode: GEMMA (LOCAL)")
 
-            return OpenRouterClient(
-                model=settings.OPENROUTER_MODEL,
-                max_tokens=settings.MAX_TOKENS,
-                api_key=settings.OPENROUTER_API_KEY
-            )
+            # 🔥 CHECK OLLAMA SERVER (FAST FAIL)
+            if not LLMFactory._check_ollama():
+                raise Exception("Ollama server not reachable")
+
+            _LLM_INSTANCE = GemmaClient()
+
+            print("✅ Gemma initialized (cached)")
+
+            return _LLM_INSTANCE
 
         except Exception as e:
-            # 🔥 FAILSAFE: never break system
-            print(f"⚠️ LLM init failed: {e}")
-            print("🔁 Falling back to MOCK LLM")
+            print(f"⚠️ Gemma init failed: {e}")
+            print("🔁 Falling back to basic response mode")
 
-            return MockLLM()
+            _LLM_INSTANCE = FallbackLLM()
+            return _LLM_INSTANCE
+
+    # ===============================
+    # 🔥 HEALTH CHECK (FAST)
+    # ===============================
+    @staticmethod
+    def _check_ollama():
+
+        try:
+            response = requests.get(
+                "http://localhost:11434/api/tags",
+                timeout=2
+            )
+
+            return response.status_code == 200
+
+        except:
+            return False
+
+
+# ===============================
+# 🔥 FALLBACK LLM (SAFE MODE)
+# ===============================
+class FallbackLLM:
+
+    def generate(self, prompt: str) -> str:
+        return "⚠️ AI Tutor is temporarily unavailable. Please try again."

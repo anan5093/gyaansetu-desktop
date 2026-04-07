@@ -1,189 +1,129 @@
 import json
 import os
 import re
+from config import settings
 
 
-class DatasetChunker:
+class DatasetCleaner:
+    """
+    Stage 1 — Raw JSON → Cleaned + chunked rows.
+    Reads from:  data/raw_dataset/class{id}/{subject}{id}.json
+    Writes to:   data/cleaned_dataset/class{id}/cleaned_rows.json
+    """
 
     def __init__(
         self,
-        class_id: int,
-        subject: str,
-        base_data_dir: str = "data"
+        class_id: int = None,
+        subject: str = None,
+        base_data_dir: str = "data",
+        chunk_size: int = 200,
+        overlap: int = 40,
     ):
-
-        self.class_id = class_id
-        self.subject = subject.lower()
+        self.class_id      = class_id or settings.CLASS_ID
+        self.subject       = (subject or settings.SUBJECT).lower()
+        self.base_data_dir = base_data_dir
+        self.chunk_size    = chunk_size
+        self.overlap       = overlap
 
         self.input_path = os.path.join(
             base_data_dir,
-            "cleaned_dataset",
-            f"class{class_id}",
-            "cleaned_rows.json"
+            "raw_dataset",
+            f"class{self.class_id}",
+            f"ncert_{self.subject}{self.class_id}.json",
         )
-
         self.output_path = os.path.join(
             base_data_dir,
-            "processed_chunks",
-            f"class{class_id}",
-            f"ncert_{self.subject}_chunks.json"
+            "cleaned_dataset",
+            f"class{self.class_id}",
+            "cleaned_rows.json",
         )
 
-    # =====================================
-    # Formatting Helpers
-    # =====================================
+    # ==============================
+    # ✂️ SENTENCE-AWARE CHUNKING
+    # ==============================
+    def chunk_text(self, text: str) -> list[str]:
+        if len(text) < 50:
+            return []
 
-    def _format_concept(self, topic, explanation):
+        sentences = re.split(r'(?<=[.!?])\s+', text)
+        chunks        = []
+        current_chunk = ""
 
-        return (
-            "=== CONCEPT ===\n"
-            f"Topic: {topic}\n\n"
-            "Explanation:\n"
-            f"{explanation.strip()}"
-        )
+        for sent in sentences:
+            sent = sent.strip()
+            if not sent or len(sent) < 10:
+                continue
 
-    def _format_qa(self, topic, difficulty, qtype, question, answer):
+            if len(current_chunk) + len(sent) + 1 <= self.chunk_size:
+                current_chunk = (current_chunk + " " + sent).strip() if current_chunk else sent
+            else:
+                if current_chunk:
+                    chunks.append(current_chunk.strip())
+                overlap_text  = current_chunk[-self.overlap:] if current_chunk else ""
+                current_chunk = (overlap_text + " " + sent).strip()
 
-        return (
-            "=== EXAM QUESTION ===\n"
-            f"Topic: {topic}\n"
-            f"Difficulty: {difficulty}\n"
-            f"Type: {qtype}\n\n"
-            "Question:\n"
-            f"{question.strip()}\n\n"
-            "Answer:\n"
-            f"{answer.strip()}"
-        )
+        if current_chunk:
+            chunks.append(current_chunk.strip())
 
-    # =====================================
-    # Chapter Inference (Lightweight)
-    # =====================================
+        return chunks
 
-    def _infer_chapter(self, topic):
+    # ==============================
+    # 🏗️ BUILD CLEANED DATASET
+    # ==============================
+    def build_clean_dataset(self) -> list[dict]:
+        print(f"\n🧹 Cleaning dataset → Class {self.class_id} | Subject: {self.subject}")
+        print(f"   Input : {self.input_path}")
 
-        if not topic:
-            return "Unknown Chapter"
-
-        return topic.strip()
-
-    # =====================================
-    # Main Builder
-    # =====================================
-
-    def build_chunks(self):
-
-        print(f"📦 Building tutor chunks → Class {self.class_id} {self.subject}")
+        if not os.path.exists(self.input_path):
+            raise FileNotFoundError(f"Raw dataset not found: {self.input_path}")
 
         with open(self.input_path, "r", encoding="utf-8") as f:
             rows = json.load(f)
 
-        all_chunks = []
-        chunk_id = 0
+        print(f"   Rows loaded: {len(rows)}")
+
+        cleaned_rows = []
+        seen_texts   = set()
 
         for row in rows:
+            explanation = row.get("Explanation", "").strip()
+            question    = row.get("Question", "").strip()
+            answer      = row.get("Answer", "").strip()
+            topic       = row.get("Topic", "").strip()
 
-            text = row["text"]
-            topic = row.get("topic")
-            difficulty = row.get("difficulty")
-            qtype = row.get("question_type")
-            complexity = row.get("complexity")
+            merged_text = f"{topic}. {explanation} {question} {answer}".strip()
+            chunks      = self.chunk_text(merged_text)
 
-            chapter = self._infer_chapter(topic)
-
-            # ============================
-            # Extract Explanation / QA
-            # ============================
-
-            explanation_match = re.search(
-                r"Explanation:(.*?)Question:",
-                text,
-                re.DOTALL
-            )
-
-            question_match = re.search(
-                r"Question:(.*?)Answer:",
-                text,
-                re.DOTALL
-            )
-
-            answer_match = re.search(
-                r"Answer:(.*)",
-                text,
-                re.DOTALL
-            )
-
-            explanation = (
-                explanation_match.group(1).strip()
-                if explanation_match else ""
-            )
-
-            question = (
-                question_match.group(1).strip()
-                if question_match else ""
-            )
-
-            answer = (
-                answer_match.group(1).strip()
-                if answer_match else ""
-            )
-
-            # ============================
-            # Concept Chunk
-            # ============================
-
-            concept_text = self._format_concept(topic, explanation)
-
-            all_chunks.append({
-                "chunk_id": chunk_id,
-                "text": concept_text,
-                "type": "concept",
-                "topic": topic,
-                "class": self.class_id,
-                "subject": self.subject,
-                "chapter": chapter,
-                "difficulty": difficulty,
-                "question_type": qtype,
-                "complexity": complexity
-            })
-
-            chunk_id += 1
-
-            # ============================
-            # QA Chunk
-            # ============================
-
-            if question and answer:
-
-                qa_text = self._format_qa(
-                    topic,
-                    difficulty,
-                    qtype,
-                    question,
-                    answer
-                )
-
-                all_chunks.append({
-                    "chunk_id": chunk_id,
-                    "text": qa_text,
-                    "type": "qa",
-                    "topic": topic,
-                    "class": self.class_id,
-                    "subject": self.subject,
-                    "chapter": chapter,
-                    "difficulty": difficulty,
-                    "question_type": qtype,
-                    "complexity": complexity
+            for chunk in chunks:
+                key = chunk.lower().strip()
+                if key in seen_texts:
+                    continue
+                seen_texts.add(key)
+                cleaned_rows.append({
+                    "text":          chunk,
+                    "topic":         topic,
+                    "difficulty":    row.get("Difficulty"),
+                    "question_type": row.get("QuestionType"),
+                    "complexity":    row.get("QuestionComplexity"),
+                    # ✅ NEW: track source for multi-dataset support
+                    "source":        f"ncert_class{self.class_id}_{self.subject}",
+                    "class_id":      self.class_id,
+                    "subject":       self.subject,
                 })
 
-                chunk_id += 1
-
-        print(f"✅ Total tutor chunks created: {len(all_chunks)}")
-
+        print(f"✅ Cleaned rows created : {len(cleaned_rows)}")
         os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
 
         with open(self.output_path, "w", encoding="utf-8") as f:
-            json.dump(all_chunks, f, ensure_ascii=False, indent=2)
+            json.dump(cleaned_rows, f, ensure_ascii=False, indent=2)
 
-        print(f"💾 Saved at {self.output_path}")
+        print(f"💾 Saved → {self.output_path}\n")
+        return cleaned_rows
 
-        return all_chunks
+
+# ==============================
+# 🏃 CLI RUNNER
+# ==============================
+if __name__ == "__main__":
+    cleaner = DatasetCleaner()
+    cleaner.build_clean_dataset()

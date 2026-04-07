@@ -5,26 +5,29 @@ import os
 
 class HFLoader:
 
-    def __init__(
-        self,
-        dataset_name: str = "KadamParth/NCERT_Science_10th",
-        save_path: str = "data/raw_dataset/ncert_science10.json"
-    ):
-        self.dataset_name = dataset_name
-        self.save_path = save_path
+    def __init__(self, class_id: int = 10, subject: str = "science"):
+        """
+        Dynamically sets the dataset repo and save path based on the class_id provided.
+        """
+        self.class_id = class_id
+        
+        if self.class_id == 9:
+            self.dataset_name = "KadamParth/NCERT_Science_9th"
+            self.save_path = f"data/raw_dataset/class9/ncert_{subject}9.json"
+        else:
+            self.dataset_name = "KadamParth/NCERT_Science_10th"
+            self.save_path = f"data/raw_dataset/class10/ncert_{subject}10.json"
 
     def load(self):
         """
         Download dataset from HuggingFace and return list of rows
         """
-        print("⬇️ Downloading dataset from HuggingFace...")
+        print(f"⬇️ Downloading dataset: {self.dataset_name} ...")
 
         ds = load_dataset(self.dataset_name)
-
         rows = list(ds["train"])
 
         print(f"✅ Dataset loaded. Total rows: {len(rows)}")
-
         return rows
 
     def save_local(self, rows):
@@ -33,7 +36,7 @@ class HFLoader:
         """
         os.makedirs(os.path.dirname(self.save_path), exist_ok=True)
 
-        print("💾 Saving dataset locally...")
+        print(f"💾 Saving dataset locally...")
 
         with open(self.save_path, "w", encoding="utf-8") as f:
             json.dump(rows, f, ensure_ascii=False, indent=2)
@@ -44,3 +47,9 @@ class HFLoader:
         rows = self.load()
         self.save_local(rows)
         return rows
+
+# Quick runner if executed directly
+if __name__ == "__main__":
+    # Example: To pull 9th grade
+    loader = HFLoader(class_id=9)
+    loader.load_and_save()

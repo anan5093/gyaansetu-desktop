@@ -1,19 +1,71 @@
+from typing import Optional
+from config import settings
+
+
 class PromptBuilder:
-    def build(self, context, question):
+    """
+    Builds structured prompts for the NCERT RAG tutor.
+    Updated to enforce step-by-step numerical calculations and LaTeX formatting.
+    """
 
-        return f"""
-You are an NCERT academic tutor.
+    # 🔥 REVISED SYSTEM PROMPT: Enforces "Chain of Thought" for math
+    SYSTEM = (
+        "You are GyaanSetu, an expert NCERT Science Tutor. "
+        "You must follow these strict rules:\n"
+        "1. STEP-BY-STEP CALCULATION: For every numerical or mathematical question, you MUST follow this structure:\n"
+        "   - Given: (List the values provided in the question)\n"
+        "   - Formula: (State the relevant NCERT formula)\n"
+        "   - Substitution: (Show the numbers plugged into the formula and the calculation steps)\n"
+        "   - Result: (The final answer clearly stated with units)\n"
+        "2. DIRECT START: Do not use introductory filler. Start your response immediately with 'Given:' for numericals or the factual answer for theoretical questions.\n"
+        "3. LaTeX FORMATTING: Use LaTeX for all mathematical expressions, equations, and units to ensure professional rendering.\n"
+        "4. FLEXIBLE GROUNDING: Use the provided context as your primary source. If the context contains the necessary formulas but not the specific numerical, you ARE authorized to perform the calculation. Only refuse if the core concept or formula is completely missing."
+    )
 
-Answer ONLY using the NCERT context below.
+    # ==============================
+    # 📄 STATELESS PROMPT
+    # ==============================
+    def build(self, context: list[str], question: str) -> str:
+        context_text = self._format_context(context)
+        return (
+            f"{self.SYSTEM}\n\n"
+            f"[NCERT Context]\n{context_text}\n\n"
+            f"[Question]\n{question}\n\n"
+            "Step-by-step Solution:"  # 🔥 Forces the model into 'Logic Mode'
+        )
 
-If the answer is not present in the context, say:
-"Answer not found in NCERT content."
+    # ==============================
+    # 💬 CHAT PROMPT (multi-turn)
+    # ==============================
+    def build_chat(
+        self,
+        context: list[str],
+        question: str,
+        session_id: Optional[str] = None,
+    ) -> str:
+        context_text = self._format_context(context)
+        return (
+            f"{self.SYSTEM}\n\n"
+            f"[NCERT Context]\n{context_text}\n\n"
+            f"[Student Question]\n{question}\n\n"
+            "Step-by-step Solution:"  # 🔥 Anchor for consistent tutor behavior
+        )
 
-NCERT Context:
-{context}
+    # ==============================
+    # 🧹 CONTEXT FORMATTER
+    # ==============================
+    def _format_context(self, context: list[str]) -> str:
+        seen = set()
+        cleaned = []
+        for chunk in context:
+            chunk = chunk.strip()
+            if chunk and chunk not in seen:
+                seen.add(chunk)
+                cleaned.append(chunk)
 
-Student Question:
-{question}
+        joined = "\n".join(cleaned)
 
-Grounded Answer:
-"""
+        if len(joined) > settings.MAX_CONTEXT_CHARS:
+            joined = joined[:settings.MAX_CONTEXT_CHARS] + "..."
+
+        return joined
