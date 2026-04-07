@@ -191,7 +191,7 @@ Interactive docs are available at **http://localhost:8000/docs**.
 ```bash
 curl -X POST http://localhost:8000/chat \
   -H "Content-Type: application/json" \
-  -d '{"question": "What is Newton'\''s second law of motion?"}'
+  -d "{\"question\": \"What is Newton's second law of motion?\"}"
 ```
 
 **Example response:**
@@ -219,7 +219,7 @@ All settings are read from environment variables or a `.env` file in the project
 | `SUBJECT` | `science` | Subject name |
 | `TOP_K` | `7` | Number of FAISS chunks retrieved per query |
 | `SCORE_THRESHOLD` | `0.20` | Minimum cosine-similarity score to include a chunk |
-| `OLLAMA_HOST` | `https://…ngrok-free.dev` | Ollama server URL (local or ngrok tunnel) |
+| `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL (local or ngrok tunnel) |
 | `OLLAMA_MODEL` | `gemma4:e2b` | Model name served by Ollama |
 | `LLM_TEMPERATURE` | `0.1` | Low temperature for factual, curriculum-accurate answers |
 | `LLM_NUM_CTX` | `2048` | Context window size (tokens) |
