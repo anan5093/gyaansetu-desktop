@@ -19,6 +19,7 @@
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Running the App](#running-the-app)
+  - [Usage Examples](#usage-examples)
   - [Optional: FastAPI Backend](#optional-fastapi-backend)
 - [Configuration](#configuration)
 - [ONNX Model](#onnx-model)
@@ -173,6 +174,85 @@ python run_app.py
 ```
 
 Streamlit opens automatically at **http://localhost:8501**. Use the sidebar to switch between Class 9 and Class 10 Science, then type your question in the chat box.
+
+---
+
+### Usage Examples
+
+Once the app is running, type any NCERT Science question into the chat box. The tutor responds step-by-step using retrieved textbook context.
+
+#### Class 10 — Numerical Questions
+
+**Electricity (Ohm's Law)**
+> *"A resistor of 5 Ω is connected to a 10 V battery. What is the current through it?"*
+
+Expected response style:
+```
+Given:   Resistance R = 5 Ω, Voltage V = 10 V
+Formula: V = IR  →  I = V / R
+Sub:     I = 10 / 5 = 2 A
+Result:  The current through the resistor is 2 A.
+```
+
+**Light — Lenses**
+> *"An object is placed 30 cm in front of a convex lens of focal length 10 cm. Find the image distance."*
+
+Expected response style:
+```
+Given:   Object distance u = −30 cm, Focal length f = +10 cm
+Formula: 1/f = 1/v − 1/u
+Sub:     1/10 = 1/v − 1/(−30)  →  1/v = 1/10 − 1/30 = 2/30
+Result:  v = 15 cm (real image, on the opposite side of the lens)
+```
+
+**Chemical Reactions**
+> *"Calculate the molar mass of water (H₂O)."*
+
+Expected response style:
+```
+Given:   H₂O — 2 hydrogen atoms + 1 oxygen atom
+Formula: Molar mass = sum of atomic masses
+Sub:     2(1) + 16 = 18 g/mol
+Result:  Molar mass of water = 18 g/mol
+```
+
+---
+
+#### Class 9 — Numerical Questions
+
+**Force and Laws of Motion**
+> *"A car of mass 1200 kg accelerates from rest to 20 m/s in 10 s. Find the net force acting on it."*
+
+Expected response style:
+```
+Given:   m = 1200 kg, u = 0 m/s, v = 20 m/s, t = 10 s
+Formula: F = ma,  a = (v − u) / t
+Sub:     a = (20 − 0) / 10 = 2 m/s²
+         F = 1200 × 2 = 2400 N
+Result:  Net force = 2400 N
+```
+
+**Work, Energy and Power**
+> *"A ball of mass 2 kg is moving at 5 m/s. What is its kinetic energy?"*
+
+Expected response style:
+```
+Given:   m = 2 kg, v = 5 m/s
+Formula: KE = ½mv²
+Sub:     KE = ½ × 2 × 5² = ½ × 2 × 25 = 25 J
+Result:  Kinetic energy = 25 J
+```
+
+**Gravitation**
+> *"What is the weight of a 50 kg object on Earth? (g = 9.8 m/s²)"*
+
+Expected response style:
+```
+Given:   m = 50 kg, g = 9.8 m/s²
+Formula: W = mg
+Sub:     W = 50 × 9.8 = 490 N
+Result:  Weight = 490 N
+```
 
 ---
 
